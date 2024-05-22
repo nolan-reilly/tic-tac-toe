@@ -15,21 +15,10 @@ function GameBoard() {
         }
     }
 
-    // Neatly print the board to the console
-    function printBoard() {
-        for (let i = 0; i < rows; i++) {
-            let rowString = "";
-            for (let j = 0; j < columns; j++) {
-                rowString += board[i][j].getCellValue().toString() + " ";
-            }
-            console.log(rowString.trim()); // Add a newline after each row
-        }
-    }
-
     function resetBoard() {
         for (let i = 0; i < rows; i++) {
             for (let j = 0; j < columns; j++) {
-                board[i][j].changeCellValue("-");
+                board[i][j].changeCellValue(null);
             }
         }
     }
@@ -39,12 +28,12 @@ function GameBoard() {
     const getRows = () => rows;
     const getColumns = () => columns;
 
-    return { printBoard, resetBoard, getBoard, getRows, getColumns };
+    return { resetBoard, getBoard, getRows, getColumns };
 }
 
 // Factory to represent each cell inside the board
 function Cell() {
-    let value = "-"; // Value used to represent an empty cell
+    let value = null; // Value used to represent an empty cell
 
     // Not too sure how the Cell object will play into the code just yet, but
     // Let's just keep it as is for now
@@ -69,13 +58,17 @@ function Player(playerName, playerToken) {
         }
     }
 
+    function playerString() {
+        return playerName + ": " + playerScore;
+    }
+
     getPlayerTurn = () => playerTurn;
     getPlayerScore = () => playerScore;
     incrementPlayerScore = () => playerScore++;
     getName = () => playerName;
     getToken = () => playerToken;
 
-    return { changeTurnStatus, incrementPlayerScore, getPlayerScore, getPlayerTurn, getName, getToken };
+    return { changeTurnStatus, incrementPlayerScore, getPlayerScore, getPlayerTurn, getName, getToken, playerString };
 }
 
 function GameController(playerOneName, playerTwoName) {
@@ -95,60 +88,32 @@ function GameController(playerOneName, playerTwoName) {
     function incrementAndReset() {
         if (playerOne.getPlayerTurn()) {
             playerOne.incrementPlayerScore();
-            playerOneText.textContent = "Player One: " + playerOne.getPlayerScore().toString();
         } else {
             playerTwo.incrementPlayerScore();
-            playerTwoText.textContent = "Player Two: " + playerTwo.getPlayerScore().toString();
         }
 
         gameBoard.resetBoard();
     }
 
-    function assignProperSelection(cellType) {
-        const upperBound = gameBoard.getRows() - 1;
-        const lowerBound = 0;
-
-        // Prompt the user for a cell selection checking for the bounds
-        while (true) {
-            const selection = prompt(`Please select a ${cellType} [0, 1, 2]`);
-
-            // Set the bounds for the selection process
-            if (selection > upperBound || selection < lowerBound || selection == null) {
-                console.log(`Invalid ${cellType} selection!`);
-            } else {
-                return selection;
-            }
-        }
-    }
-
     // Have a player select which cell they'd like to choose. If the cell was already chosen prompt them to choose
     // a different cell until they've selected a valid cell.
-    function selectCell() {
-        while (true) {
-            // Let the User select a row and column
-            const row = assignProperSelection("row");
-            const col = assignProperSelection("col");
+    function selectCell(row, col) {
+        // Store the selected cells value
+        const cellValue = gameBoard.getBoard()[row][col].getCellValue();
 
-            // Store the selected cells value
-            const cellValue = gameBoard.getBoard()[row][col].getCellValue();
+        // Check if the cell is free, else it's not and the player must choose again
+        if (cellValue == null) {
+            if (playerOne.getPlayerTurn()) {
+                gameBoard.getBoard()[row][col].changeCellValue("X");
 
-            // Check if the cell is free, else it's not and the player must choose again
-            if (cellValue == "-") {
-                if (playerOne.getPlayerTurn()) {
-                    gameBoard.getBoard()[row][col].changeCellValue("X");
-
-                } else {
-                    gameBoard.getBoard()[row][col].changeCellValue("O");
-                }
-
-                gameBoard.printBoard();
-                checkForWin();
-                swapTurns();
-                break;
             } else {
-                console.log("Cell is already occupied!")
-                continue;
+                gameBoard.getBoard()[row][col].changeCellValue("O");
             }
+
+            checkForWin();
+            swapTurns();
+        } else {
+            console.log("Cell is already occupied!")
         }
     }
 
@@ -160,7 +125,7 @@ function GameController(playerOneName, playerTwoName) {
             const cellValue = quickGrab[i][0].getCellValue();
 
             // If the first cell of the row is '-' the row can't be a winning condition
-            if (cellValue == "-") {
+            if (cellValue == null) {
                 continue;
             }
 
@@ -176,7 +141,7 @@ function GameController(playerOneName, playerTwoName) {
             const cellValue = quickGrab[0][i].getCellValue();
 
             // if the first cell of the column is '-' the column can't be a winning condition
-            if (cellValue == "-") {
+            if (cellValue == null) {
                 continue;
             }
 
@@ -191,7 +156,7 @@ function GameController(playerOneName, playerTwoName) {
         const middleCellValue = quickGrab[1][1].getCellValue();
 
         // If the middle isn't occupied no diagonal winning condition can be met
-        if (middleCellValue == "-") {
+        if (middleCellValue == null) {
             // Do nothing
         } else if (middleCellValue == quickGrab[0][0].getCellValue() && middleCellValue == quickGrab[2][2].getCellValue()) {
             console.log("Diagonal winning condition met");
@@ -201,37 +166,89 @@ function GameController(playerOneName, playerTwoName) {
             incrementAndReset();
         }
 
-        // We'll use this as a way to see if the board was filled with a tie condition if it was then we reset the board and
-        // don't increment any of the scores
+        // If no winning condition is met check if the board has any squares left
         checkForFilledBoard();
     }
 
-    // Complete dog shit waste of time to write the code for this with console manual prompts
-    // Do filled board later as it takes too much time to manually write out this stuff
-    // function checkForFilledBoard() {
-    //     let upperBound = gameBoard.getRows() * gameBoard.getColumns();
+    // Check for tie
+    function checkForFilledBoard() {
+        let upperBound = gameBoard.getRows() * gameBoard.getColumns();
 
-    //     for (let i = 0; i < gameBoard.getRows() - 1; i++) {
-    //         for (let j = 0; j < gameBoard.getColumns() - 1; j++) {
-    //             if (gameBoard.getBoard()[i][j].getCellValue() != "-") {
-    //                 upperBound--;
-    //             }
-    //         }
-    //     }
+        for (let i = 0; i < gameBoard.getRows(); i++) {
+            for (let j = 0; j < gameBoard.getColumns(); j++) {
+                if (gameBoard.getBoard()[i][j].getCellValue() != null) {
+                    upperBound--;
+                }
+            }
+        }
 
-    //     if (upperBound == 0) {
-    //         console.log("Players Tied")
-    //     } else {
-    //         console.log("Board not filled");
-    //     }
-    // }
+        if (upperBound == 0) {
+            console.log("Players Tied")
+            gameBoard.resetBoard();
+        }
+    }
 
-    return { selectCell }
+    return {
+        selectCell,
+        getRows: gameBoard.getRows,
+        getColumns: gameBoard.getColumns,
+        getBoard: gameBoard.getBoard,
+        playerOne,
+        playerTwo,
+    };
 }
 
+function ScreenController() {
+    // Create the game controller
+    const game = GameController("Player One", "Player Two");
+    const boardDiv = document.getElementById("board");
+    const scoreDiv = document.getElementById("score");
 
-const game = GameController("Player One", "Player Two");
+    // Store preset rows and columns variables
+    const rows = game.getRows();
+    const columns = game.getColumns();
 
-function writeCell() {
-    game.selectCell();
+    function updateScreen() {
+        boardDiv.innerHTML = "";  // Clear the board
+        scoreDiv.innerHTML = "";
+
+        for (let i = 0; i < rows; i++) {
+            const boardRow = document.createElement("div");  // Create a row div
+            boardRow.classList.add("row");
+
+            // Add each column to the row
+            for (let j = 0; j < columns; j++) {
+                // Create a button to represent each cell
+                const cellButton = document.createElement("button");
+                cellButton.classList.add("cell-btn");
+                cellButton.classList.add(`cell${i}${j}`)
+                cellButton.addEventListener("click", function(e) {
+                    game.selectCell(i, j);
+                    updateScreen();
+                });
+                
+                cellButton.textContent = game.getBoard()[i][j].getCellValue();
+
+                boardRow.appendChild(cellButton);
+            }
+            
+            boardDiv.appendChild(boardRow);
+        }
+
+        // Add scores to the webpage
+        const playerOneScore = document.createElement("h1");
+        playerOneScore.textContent = game.playerOne.playerString();
+        playerOneScore.classList = "player";
+
+        const playerTwoScore = document.createElement("h1");
+        playerTwoScore.textContent = game.playerTwo.playerString();
+        playerTwoScore.classList = "player";
+
+        scoreDiv.appendChild(playerOneScore);
+        scoreDiv.appendChild(playerTwoScore);
+    }
+
+    updateScreen();
 }
+
+ScreenController();
