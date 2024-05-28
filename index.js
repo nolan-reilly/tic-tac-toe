@@ -121,7 +121,7 @@ function GameController(playerOneName, playerTwoName) {
         const quickGrab = gameBoard.getBoard();
 
         // Check if any row has a winning condition
-        for (let i = 0; i < gameBoard.getRows() - 1; i++) {
+        for (let i = 0; i < gameBoard.getRows(); i++) {
             const cellValue = quickGrab[i][0].getCellValue();
 
             // If the first cell of the row is '-' the row can't be a winning condition
@@ -137,7 +137,7 @@ function GameController(playerOneName, playerTwoName) {
         }
 
         // Check if any column has a winning condition
-        for (let i = 0; i < gameBoard.getColumns() - 1; i++) {
+        for (let i = 0; i < gameBoard.getColumns(); i++) {
             const cellValue = quickGrab[0][i].getCellValue();
 
             // if the first cell of the column is '-' the column can't be a winning condition
